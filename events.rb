@@ -38,7 +38,6 @@ events.exception.each do |e|
 end
 
 events.asterisk.manager_interface.each do |event|
-  begin
   ahn_log event.name.downcase
 
   manager = Adhearsion::VoIP::Asterisk.manager_interface
@@ -54,15 +53,10 @@ events.asterisk.manager_interface.each do |event|
   when 'hangup'
     ahn_log.conf.info "#{channel} hung up"
   when 'conferencestate'
-    ahn_log.conf.debug event.headers.inspect
     ahn_log.conf.info "#{channel} is speaking" if event.headers["State"] == 'Speaking'
   when 'dtmf'
     Conference.play_for_dtmf event.headers["Digit"] if event.headers["End"] == "Yes"
     ahn_log.conf.debug event.headers.inspect
-  end
-  rescue => e
-    puts e.message
-    puts e.backtrace.join("\n")
   end
 end
 
@@ -72,11 +66,13 @@ class Conference
 
   attr_reader :participants
 
-  DTMF_AUDIO = {0 => 'gambling-drunk',
-                1 => 'office-iguanas',
-                2 => 'tt-weasels',
-                3 => 'telephone-in-your-pocket',
-                4 => 'computer-friend1'}
+  DTMF_AUDIO = {0 => 'tt-allbusy',
+                1 => 'tt-weasels',
+                2 => 'tt-hangup',
+                3 => 'tt-somethingwrong',
+                4 => 'tt-monkeysintro',
+                5 => 'tt-monty-knights',
+                6 => 'tt-monkeys'}
 
   def initialize
     @participants = []
@@ -91,7 +87,7 @@ class Conference
   end
 
   def play_sound(name)
-    participants.each do |channel|
+    @participants.each do |channel|
       ahn_log.event_handler.debug "Playing #{name} to #{channel}"
       Adhearsion::VoIP::Asterisk.manager_interface.send_action "Command", "Command" => "konference play sound #{channel} rubyconf/#{name}"
     end
